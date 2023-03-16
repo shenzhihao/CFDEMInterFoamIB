@@ -6,13 +6,13 @@ A CFDEM solver to simulate the interaction between two-phase fluid and granualr 
 
 ## Some cases:  
 ### A case of single sphere settling:  
-<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/ani1.gif" width=40% height=40%>  
+<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/ani1.gif" width=80% height=80%>  
 
 ### Seepage:  
-<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/seepage10mb.gif" width=60% height=60%>  
+<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/seepage10mb.gif" width=80% height=80%>  
 
 ### Overtopping:  
-<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/overtop.gif" width=70% height=70%>  
+<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/overtop.gif" width=80% height=80%>  
 
 ## Literature about this solver:  
 [Shen, Z., Wang, G., Huang, D., & Jin, F. (2022). A resolved CFD-DEM coupling model for modeling two-phase fluids interaction with irregularly shaped particles. Journal of Computational Physics, 448, 110695.](https://www.sciencedirect.com/science/article/pii/S0021999121005908)
