@@ -5,7 +5,7 @@ A CFDEM solver to simulate the interaction between two-phase fluid and granualr 
 2. To install this solver, you just need to run the "remake" file.
 
 ## Some cases:  
-### A case of single sphere settling:  
+### Sphere settling:  
 <img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/ani1.gif" width=80% height=80%>  
 
 ### Seepage:  
