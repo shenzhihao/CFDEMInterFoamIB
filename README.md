@@ -8,6 +8,11 @@ Some cases:
 A case of single sphere settling:  
 <img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/ani1.gif" width=40% height=40%>  
 
+seepage:  
+<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/ani1.gif" width=40% height=40%>  
+
+overtopping:  
+<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/ani1.gif" width=40% height=40%>  
 Literature about this solver:  
 [Shen, Z., Wang, G., Huang, D., & Jin, F. (2022). A resolved CFD-DEM coupling model for modeling two-phase fluids interaction with irregularly shaped particles. Journal of Computational Physics, 448, 110695.](https://www.sciencedirect.com/science/article/pii/S0021999121005908)
 
