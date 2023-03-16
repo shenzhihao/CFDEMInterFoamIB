@@ -8,10 +8,10 @@ A CFDEM solver to simulate the interaction between two-phase fluid and granualr 
 ### A case of single sphere settling:  
 <img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/ani1.gif" width=40% height=40%>  
 
-### seepage:  
+### Seepage:  
 <img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/seepage10mb.gif" width=40% height=40%>  
 
-### overtopping:  
+### Overtopping:  
 <img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/overtop.gif" width=40% height=40%>  
 
 ## Literature about this solver:  
