@@ -1,0 +1,7 @@
+path = ../subModels
+
+$(path)/cloudInterIB/cloudInterIB2_0.C
+$(path)/forceInterIB/forceInterIB.C
+$(path)/voidFractionInterIB/voidFractionInterIB.C
+
+LIB = $(CFDEM_USER_LIB_DIR)/libinterIB20
