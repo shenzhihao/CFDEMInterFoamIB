@@ -1,4 +1,4 @@
-# CFDEMInterfoamIB
+# CFDEMInterFoamIB
 A CFDEM solver to simulate the interaction between two-phase fluid and granualr materials
 
 1. Before installing this solver, ensure that the CFDEM+LIGGGHTS+OpenFOAM are correctly installed.
