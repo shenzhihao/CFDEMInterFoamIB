@@ -1,0 +1,3334 @@
+
+//   CFDEM_IB   //
+
+/home/pc/0Code/solverInterIB2_0/tutorial/single_sphere/CFD
+
+Solver name: solverInterIB2.0
+Solver name: solverInterIB2.0
+Solver name: solverInterIB2.0
+Solver name: solverInterIB2.0
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5.x                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 5.x-7f7d351b741b
+Exec   : solverInterIB20 -parallel
+Date   : Mar 17 2023
+Time   : 03:39:09
+Host   : "pc"
+PID    : 65676
+I/O    : uncollated
+Case   : /home/pc/0Code/solverInterIB2_0/tutorial/single_sphere/CFD
+nProcs : 4
+Slaves : 
+3
+(
+"pc.65677"
+"pc.65678"
+"pc.65679"
+)
+
+Pstream initialized with:
+    floatTransfer      : 0
+    nProcsSimpleSum    : 0
+    commsType          : nonBlocking
+    polling iterations : 0
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh staticFvMesh
+
+PIMPLE: Operating solver in PISO mode
+
+========Createfields for myinterid 2.0========
+Reading voidfraction
+Reading field p_rgh
+Reading field U
+Create face flux field phi
+Reading particle velocity field Us
+Reading transportProperties
+Selecting incompressible transport model Newtonian
+Selecting incompressible transport model Newtonian
+Selecting turbulence model type laminar
+Selecting laminar stress model Stokes
+
+Reading g
+
+Reading hRef
+Calculating field g.h
+
+Reading field p
+No MRF models present
+
+Reading field interFace
+Reading field ibdrag
+Reading field phiIB
+==========End createfields========
+
+Selecting locateModel engineIB
+Selecting dataExchangeModel twoWayMPI
+Starting up LIGGGHTS for first time execution
+Executing input script '../DEM/in.liggghts_run'
+LIGGGHTS (Version LIGGGHTS-PUBLIC 3.8.0, compiled 2023-03-16-21:31:25 by pc, git commit 78f1a0277ef1f4f8ec5be8ad2f9715aa0ca5796c)
+log                     ../DEM/log_run.txt
+thermo_log              ../DEM/log_thermo.txt
+
+#变量定义
+variable            xmin           equal   0.0
+variable            xmax           equal   0.1
+variable            ymin           equal   0.0
+variable            ymax           equal   0.1
+variable            zmin           equal   0.2
+variable            zmax           equal   0.4
+
+variable            posx           equal   ${xmax}/2
+variable            posx           equal   0.1/2
+variable            posy           equal   ${ymax}/2
+variable            posy           equal   0.1/2
+variable            posz           equal   0.32
+
+
+variable            vx             equal   0.0
+variable            vy             equal   0.0
+variable            vz             equal   0.0
+
+variable            rhop           equal   1400
+
+variable            timestep       equal   0.00001
+variable            outSteps       equal   1000
+##################################################
+
+atom_style          granular
+atom_modify         map array
+communicate         single vel yes
+
+boundary            f f f
+newton              off
+
+units               si
+processors          1 1 4
+
+region              reg block ${xmin} ${xmax} ${ymin} ${ymax} ${zmin} ${zmax} units box
+region              reg block 0 ${xmax} ${ymin} ${ymax} ${zmin} ${zmax} units box
+region              reg block 0 0.1 ${ymin} ${ymax} ${zmin} ${zmax} units box
+region              reg block 0 0.1 0 ${ymax} ${zmin} ${zmax} units box
+region              reg block 0 0.1 0 0.1 ${zmin} ${zmax} units box
+region              reg block 0 0.1 0 0.1 0.2 ${zmax} units box
+region              reg block 0 0.1 0 0.1 0.2 0.4 units box
+create_box          1 reg
+Created orthogonal box = (0 0 0.2) to (0.1 0.1 0.4)
+  1 by 1 by 4 MPI processor grid
+
+neighbor            0.001 bin
+# neigh_modify        delay 0
+neigh_modify        delay 1000
+#binsize 0.001
+
+# Material properties required for new pair styles
+
+fix                 m1 all property/global youngsModulus peratomtype 5.e7
+fix                 m2 all property/global poissonsRatio peratomtype 0.45
+fix                 m3 all property/global coefficientRestitution peratomtypepair 1 0.3
+fix                 m4 all property/global coefficientFriction peratomtypepair 1 0.5
+
+# pair style
+pair_style          gran model hertz tangential history
+# Hertzian without cohesion
+pair_coeff          * *
+
+# timestep, gravity
+timestep            ${timestep}
+timestep            1e-05
+
+fix                 gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+# walls
+fix                 xwalls1 all wall/gran model hertz tangential history primitive type 1 xplane 0.0
+fix                 xwalls2 all wall/gran model hertz tangential history primitive type 1 xplane 0.1
+fix                 ywalls1 all wall/gran model hertz tangential history primitive type 1 yplane 0.0
+fix                 ywalls2 all wall/gran model hertz tangential history primitive type 1 yplane 0.1
+fix                 zwalls1 all wall/gran model hertz tangential history primitive type 1 zplane 0.2
+# fix                 zwalls2 all wall/gran model hertz tangential history primitive type 1 zplane ${zmax}
+
+# cfd coupling
+fix                 cfd  all couple/cfd couple_every 100 mpi
+couple_every as specified in LIGGGHTS is overriden by calling external program (../fix_cfd_coupling.cpp:114)
+fix                 cfd2 all couple/cfd/force
+
+#create single partciles
+create_atoms       1 single 0.05 0.05 0.32  units box
+Created 1 atoms
+set                atom 1 diameter 0.02 density 1500 vx 0 vy 0 vz 0
+Setting atom values ...
+  1 settings made for diameter
+  1 settings made for density
+  1 settings made for vx
+  1 settings made for vy
+  1 settings made for vz
+
+#apply nve integration to all particles that are inserted as single particles
+fix                 integr all nve/sphere
+
+# screen output
+compute             rke all erotate/sphere
+thermo_style        custom step atoms ke c_rke vol
+thermo              1000
+thermo_modify       lost ignore norm no
+compute_modify      thermo_temp dynamic yes
+WARNING: Changing thermo_temp compute object. This object is deprecated and will be removed in the future. (../compute.cpp:161)
+
+# output every N steps
+dump                dmp all custom ${outSteps} ../DEM/post/dump*.liggghts                     id type x y z ix iy iz vx vy vz fx fy fz                     omegax omegay omegaz radius
+dump                dmp all custom 1000 ../DEM/post/dump*.liggghts                     id type x y z ix iy iz vx vy vz fx fy fz                     omegax omegay omegaz radius
+                    # cluster
+
+run                 1
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:09 2023
+
+Memory usage per processor = 4.24111 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+       0        1              0              0          0.002 
+       1        1  3.0233462e-11              0          0.002 
+Loop time of 1.6433e-05 on 4 procs for 1 steps with 1 atoms, finish time Fri Mar 17 03:39:09 2023
+
+
+Pair  time (%) = 5.7875e-07 (3.52188)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 1.521e-06 (9.25577)
+Outpt time (%) = 8.05875e-06 (49.04)
+Other time (%) = 6.2745e-06 (38.1823)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+
+--> FOAM Warning : You are using sub-time-steps (i.e. CFD TS < coupling time)! Check your settings properly.
+Selecting IOModel basicIO
+Selecting probeModel off
+Selecting voidFractionModel IB
+
+
+ W A R N I N G - do not use in combination with differentialRegion model! 
+
+
+Selecting averagingModel dilute
+Selecting clockModel off
+start clock measurement at t >0.002
+Selecting smoothingModel off
+Selecting meshMotionModel noMeshMotion
+
+CFDEMcoupling version: cfdem-3.8.1
+, compatible to LIGGGHTS version: 3.8.0
+, compatible to OF version and build: 5.x-commit-538044ac05c4672b37c7df607dca1116fa88df88
+
+You are currently using:
+OF version: 5.x
+OF build: 5.x-7f7d351b741b
+CFDEM build: 3.8.0-3-gb237264-dirty
+
+cg is set to: 1
+LIGGGHTS hosts 1 atom types.
+If BC are important, please provide volScalarFields -imp/expParticleForces-
+choice for ddt(voidfraction) = b
+Selecting forceModel forceInterIB
+ Selecting forceSubModel ImEx
+ reading switches:
+  looking for treatForceExplicit ...  not found in dict, using default. treatForceExplicit = false
+  looking for verbose ...  not found in dict, using default. verbose = false
+
+Selecting liggghtsCommandModel runLiggghts ,provide dicts, numbered from 0 to n
+
+==========Start Constructor of myCloudinterIB2.0============
+
+
+End Constructor of myCloudinterIB2.0
+
+No finite volume options present
+
+DICPCG:  Solving for pcorr, Initial residual = 0, Final residual = 0, No Iterations 0
+time step continuity errors : sum local = 0, global = 0, cumulative = 0
+Courant Number mean: 0 max: 0
+
+Starting time loop
+
+Time Step = 0.0002
+
+Courant Number mean: 0 max: 0
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:09 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+       1        1  3.0233462e-11              0          0.002 
+CFD Coupling established at step 100
+     101        1  3.0841155e-07              0          0.002 
+Loop time of 0.000151946 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:09 2023
+
+
+Pair  time (%) = 1.90272e-05 (12.5224)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 3.07035e-05 (20.2068)
+Outpt time (%) = 3.34478e-05 (22.0129)
+Other time (%) = 6.87677e-05 (45.2579)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cloudInterIB20::reAllocArrays()
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0002
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.5  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.999999961221, Final residual = 3.38029065878e-07, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.999999961277, Final residual = 1.62088910946e-07, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 1, Final residual = 1.3365605012e-10, No Iterations 2
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 1, Final residual = 0.0452027111638, No Iterations 5
+time step continuity errors : sum local = 0.00978702525272, global = 4.57533316789e-18, cumulative = 4.57533316789e-18
+DICPCG:  Solving for p_rgh, Initial residual = 0.0206742587814, Final residual = 0.000924466174111, No Iterations 35
+time step continuity errors : sum local = 0.000436786357514, global = -6.13396256974e-05, cumulative = -6.13396256974e-05
+DICPCG:  Solving for p_rgh, Initial residual = 0.00050414648275, Final residual = 1.867601287e-05, No Iterations 42
+time step continuity errors : sum local = 1.6231213741e-05, global = 5.41097267299e-07, cumulative = -6.07985284301e-05
+DICPCG:  Solving for p_rgh, Initial residual = 1.8786074318e-05, Final residual = 8.13680284981e-08, No Iterations 64
+time step continuity errors : sum local = 7.08898613126e-08, global = -1.03019302833e-08, cumulative = -6.08088303604e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 0.7 s ClockTime = 0 s
+
+--------------------------------------------------
+Time Step = 0.0004
+
+Courant Number mean: 4.60888654841e-07 max: 3.5178289669e-06
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0004
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999688  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0890643006794, Final residual = 1.91757115883e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0834621693865, Final residual = 1.50649768279e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00366269893168, Final residual = 2.37554739589e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 8.94907193857e-07, Final residual = 9.08804527272e-08, No Iterations 40
+time step continuity errors : sum local = 7.91839600528e-08, global = 1.02682446629e-09, cumulative = -6.08078035359e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.19833641416e-08, Final residual = 9.19833641416e-08, No Iterations 0
+time step continuity errors : sum local = 8.01441929394e-08, global = 1.12714746875e-09, cumulative = -6.08066763884e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.19896932621e-08, Final residual = 9.19896932621e-08, No Iterations 0
+time step continuity errors : sum local = 8.01497074387e-08, global = 1.12758904093e-09, cumulative = -6.08055487994e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.19897183039e-08, Final residual = 9.19897183039e-08, No Iterations 0
+time step continuity errors : sum local = 8.01497292576e-08, global = 1.12759098036e-09, cumulative = -6.08044212084e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 1.06 s ClockTime = 1 s
+
+--------------------------------------------------
+Time Step = 0.0006
+
+Courant Number mean: 6.1127969761e-06 max: 0.000524175100902
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0006
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999605  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0628193924809, Final residual = 1.0112170769e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0642588820769, Final residual = 9.95839864235e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.0164044800288, Final residual = 9.65767803403e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 7.9560895201e-07, Final residual = 9.43411204348e-08, No Iterations 24
+time step continuity errors : sum local = 8.22173362668e-08, global = 1.50739975103e-08, cumulative = -6.07893472109e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.48294434579e-08, Final residual = 9.48294434579e-08, No Iterations 0
+time step continuity errors : sum local = 8.26429841402e-08, global = 1.50929218919e-08, cumulative = -6.0774254289e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.48322868501e-08, Final residual = 9.48322868501e-08, No Iterations 0
+time step continuity errors : sum local = 8.26454621302e-08, global = 1.5093017312e-08, cumulative = -6.07591612717e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.48322977355e-08, Final residual = 9.48322977355e-08, No Iterations 0
+time step continuity errors : sum local = 8.26454716165e-08, global = 1.50930177694e-08, cumulative = -6.07440682539e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 1.42 s ClockTime = 1 s
+
+--------------------------------------------------
+Time Step = 0.0008
+
+Courant Number mean: 7.86101934373e-06 max: 0.000594808717927
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0008
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999526  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0438358646959, Final residual = 1.31018382589e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0424466363676, Final residual = 1.26911221003e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.0945116470019, Final residual = 7.94851922192e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 5.71882142556e-07, Final residual = 8.60186118705e-08, No Iterations 8
+time step continuity errors : sum local = 7.49762109623e-08, global = 3.50634943465e-08, cumulative = -6.07090047596e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.61313755927e-08, Final residual = 8.61313755927e-08, No Iterations 0
+time step continuity errors : sum local = 7.50745084892e-08, global = 3.50819478171e-08, cumulative = -6.06739228117e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.61318095102e-08, Final residual = 8.61318095102e-08, No Iterations 0
+time step continuity errors : sum local = 7.5074886704e-08, global = 3.50820122161e-08, cumulative = -6.06388407995e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.61318114304e-08, Final residual = 8.61318114304e-08, No Iterations 0
+time step continuity errors : sum local = 7.50748883772e-08, global = 3.50820124477e-08, cumulative = -6.06037587871e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 1.76 s ClockTime = 1 s
+
+--------------------------------------------------
+Time Step = 0.001
+
+Courant Number mean: 9.09329468594e-06 max: 0.000628060451589
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.001
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999361  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0998987869643, Final residual = 5.842249852e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.105290479059, Final residual = 5.75059591541e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00608118106456, Final residual = 6.9609577622e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.11911445627e-07, Final residual = 9.66422530237e-08, No Iterations 30
+time step continuity errors : sum local = 8.42312261174e-08, global = 6.03042309665e-09, cumulative = -6.0597728364e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.68594248706e-08, Final residual = 9.68594248706e-08, No Iterations 0
+time step continuity errors : sum local = 8.44214187453e-08, global = 5.85784545984e-09, cumulative = -6.05918705185e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.68602469501e-08, Final residual = 9.68602469501e-08, No Iterations 0
+time step continuity errors : sum local = 8.44221352587e-08, global = 5.85720975044e-09, cumulative = -6.05860133088e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.68602501054e-08, Final residual = 9.68602501054e-08, No Iterations 0
+time step continuity errors : sum local = 8.44221380087e-08, global = 5.85720733777e-09, cumulative = -6.05801561014e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 2.41 s ClockTime = 2 s
+
+--------------------------------------------------
+Time Step = 0.0012
+
+Courant Number mean: 8.59996923991e-06 max: 0.000642755914885
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:11 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+     101        1  3.0841155e-07              0          0.002 
+CFD Coupling established at step 200
+     201        1  1.2204905e-06  1.7580014e-43          0.002 
+Loop time of 0.000133445 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:11 2023
+
+
+Pair  time (%) = 2.19205e-05 (16.4266)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 2.31795e-05 (17.3701)
+Outpt time (%) = 3.06965e-05 (23.0032)
+Other time (%) = 5.76482e-05 (43.2001)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0012
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999332  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0171987006166, Final residual = 3.29066898548e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0169295793381, Final residual = 3.12422390951e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.031534383586, Final residual = 1.83886844679e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.50425164862e-07, Final residual = 9.42755621124e-08, No Iterations 5
+time step continuity errors : sum local = 8.21533084928e-08, global = -2.45702358724e-08, cumulative = -6.06047263373e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.45402546319e-08, Final residual = 9.45402546319e-08, No Iterations 0
+time step continuity errors : sum local = 8.23839362587e-08, global = -2.45702435721e-08, cumulative = -6.06292965809e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.45415689089e-08, Final residual = 9.45415689089e-08, No Iterations 0
+time step continuity errors : sum local = 8.23850815414e-08, global = -2.45702279627e-08, cumulative = -6.06538668088e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.45415739285e-08, Final residual = 9.45415739285e-08, No Iterations 0
+time step continuity errors : sum local = 8.23850859155e-08, global = -2.45702278486e-08, cumulative = -6.06784370367e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 2.83 s ClockTime = 2 s
+
+--------------------------------------------------
+Time Step = 0.0014
+
+Courant Number mean: 8.98745998079e-06 max: 0.00065143683814
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0014
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999311  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00997128308119, Final residual = 2.37631120659e-07, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00988918484755, Final residual = 2.3585843839e-07, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00402712787798, Final residual = 4.31732621546e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 1.35179630092e-06, Final residual = 8.51152282148e-08, No Iterations 41
+time step continuity errors : sum local = 7.41398999775e-08, global = 1.65125742861e-09, cumulative = -6.06767857793e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.6436056168e-08, Final residual = 8.6436056168e-08, No Iterations 0
+time step continuity errors : sum local = 7.52889897881e-08, global = 1.90404386491e-09, cumulative = -6.06748817354e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.6444395045e-08, Final residual = 8.6444395045e-08, No Iterations 0
+time step continuity errors : sum local = 7.52962532561e-08, global = 1.90516713059e-09, cumulative = -6.06729765683e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.64444279213e-08, Final residual = 8.64444279213e-08, No Iterations 0
+time step continuity errors : sum local = 7.52962818929e-08, global = 1.90517210164e-09, cumulative = -6.06710713962e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 3.2 s ClockTime = 3 s
+
+--------------------------------------------------
+Time Step = 0.0016
+
+Courant Number mean: 1.61106703855e-05 max: 0.00122734470905
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0016
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999298  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0621906965377, Final residual = 1.18893427182e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0624076117212, Final residual = 1.19373788216e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.0254566161878, Final residual = 7.32035812115e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 9.16652298021e-07, Final residual = 9.46794199909e-08, No Iterations 40
+time step continuity errors : sum local = 8.24906877213e-08, global = -1.77011549658e-09, cumulative = -6.06728415117e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.5988656323e-08, Final residual = 9.5988656323e-08, No Iterations 0
+time step continuity errors : sum local = 8.36327377447e-08, global = -1.8792624324e-09, cumulative = -6.06747207741e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.59963188918e-08, Final residual = 9.59963188918e-08, No Iterations 0
+time step continuity errors : sum local = 8.36394139669e-08, global = -1.87968178902e-09, cumulative = -6.06766004559e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.59963489673e-08, Final residual = 9.59963489673e-08, No Iterations 0
+time step continuity errors : sum local = 8.36394401712e-08, global = -1.87968344537e-09, cumulative = -6.06784801393e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 3.57 s ClockTime = 3 s
+
+--------------------------------------------------
+Time Step = 0.0018
+
+Courant Number mean: 1.69705111804e-05 max: 0.00126321738222
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0018
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999296  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.012349865835, Final residual = 5.51007522214e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0124902771768, Final residual = 5.54653745255e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00888594244575, Final residual = 8.08714952108e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 5.06306269594e-07, Final residual = 8.92181569939e-08, No Iterations 5
+time step continuity errors : sum local = 7.77184063512e-08, global = 5.84175839058e-09, cumulative = -6.06726383809e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.9458748265e-08, Final residual = 8.9458748265e-08, No Iterations 0
+time step continuity errors : sum local = 7.7927970817e-08, global = 5.88592963254e-09, cumulative = -6.06667524513e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.94598206781e-08, Final residual = 8.94598206781e-08, No Iterations 0
+time step continuity errors : sum local = 7.79289050011e-08, global = 5.88611531881e-09, cumulative = -6.0660866336e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.94598250491e-08, Final residual = 8.94598250491e-08, No Iterations 0
+time step continuity errors : sum local = 7.79289088089e-08, global = 5.8861161037e-09, cumulative = -6.06549802199e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 3.91 s ClockTime = 3 s
+
+--------------------------------------------------
+Time Step = 0.002
+
+Courant Number mean: 1.77924982107e-05 max: 0.00127968437823
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.002
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999279  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00452633209268, Final residual = 3.83842867656e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00460096535999, Final residual = 3.84314817781e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.0101726248801, Final residual = 1.57987351329e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 6.37600041125e-07, Final residual = 9.22005842073e-08, No Iterations 3
+time step continuity errors : sum local = 8.03253528089e-08, global = 9.69536725676e-09, cumulative = -6.06452848526e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.22614619567e-08, Final residual = 9.22614619567e-08, No Iterations 0
+time step continuity errors : sum local = 8.0378371394e-08, global = 9.68363907325e-09, cumulative = -6.06356012136e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.2261348968e-08, Final residual = 9.2261348968e-08, No Iterations 0
+time step continuity errors : sum local = 8.03782729576e-08, global = 9.68359646802e-09, cumulative = -6.06259176171e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.22613483293e-08, Final residual = 9.22613483293e-08, No Iterations 0
+time step continuity errors : sum local = 8.03782724014e-08, global = 9.68359630903e-09, cumulative = -6.06162340208e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 4.62 s ClockTime = 4 s
+
+--------------------------------------------------
+Time Step = 0.0022
+
+Courant Number mean: 1.85652225173e-05 max: 0.0013036228925
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:13 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+     201        1  1.2204905e-06  1.7580014e-43          0.002 
+CFD Coupling established at step 300
+     301        1   2.736128e-06  3.5459066e-25          0.002 
+Loop time of 0.000211149 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:13 2023
+
+
+Pair  time (%) = 3.22653e-05 (15.2808)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 3.71633e-05 (17.6005)
+Outpt time (%) = 7.59967e-05 (35.992)
+Other time (%) = 6.57237e-05 (31.1267)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0022
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999223  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00277969559155, Final residual = 8.36786696753e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00283155919825, Final residual = 8.43501963924e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.0134278321081, Final residual = 4.00600945604e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 8.58630251124e-07, Final residual = 9.38766403562e-08, No Iterations 5
+time step continuity errors : sum local = 8.17811320754e-08, global = 1.17681248717e-08, cumulative = -6.06044658959e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.41508329867e-08, Final residual = 9.41508329867e-08, No Iterations 0
+time step continuity errors : sum local = 8.20199655553e-08, global = 1.17620109302e-08, cumulative = -6.0592703885e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.41518749969e-08, Final residual = 9.41518749969e-08, No Iterations 0
+time step continuity errors : sum local = 8.20208733076e-08, global = 1.17619888287e-08, cumulative = -6.05809418961e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.41518797116e-08, Final residual = 9.41518797116e-08, No Iterations 0
+time step continuity errors : sum local = 8.20208774149e-08, global = 1.17619887467e-08, cumulative = -6.05691799074e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 5.02 s ClockTime = 5 s
+
+--------------------------------------------------
+Time Step = 0.0024
+
+Courant Number mean: 1.91728404062e-05 max: 0.00133421646824
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0024
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999147  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00173747420303, Final residual = 8.88338484549e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0017594485021, Final residual = 8.95578570688e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00293064154464, Final residual = 2.18078655828e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 1.71931453458e-06, Final residual = 9.74362760354e-08, No Iterations 25
+time step continuity errors : sum local = 8.48693012841e-08, global = -1.01065832905e-09, cumulative = -6.05701905657e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.81705877982e-08, Final residual = 9.81705877982e-08, No Iterations 0
+time step continuity errors : sum local = 8.55085649789e-08, global = -1.06707630848e-09, cumulative = -6.0571257642e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.81743533232e-08, Final residual = 9.81743533232e-08, No Iterations 0
+time step continuity errors : sum local = 8.55118448268e-08, global = -1.0672977963e-09, cumulative = -6.05723249398e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.81743680155e-08, Final residual = 9.81743680155e-08, No Iterations 0
+time step continuity errors : sum local = 8.5511857624e-08, global = -1.06729868757e-09, cumulative = -6.05733922385e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 5.38 s ClockTime = 5 s
+
+--------------------------------------------------
+Time Step = 0.0026
+
+Courant Number mean: 2.45451755715e-05 max: 0.00177245850902
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0026
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.49999999914  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0320883030335, Final residual = 4.88680339204e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0326601160968, Final residual = 4.93998181434e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.0064204180594, Final residual = 4.39827032952e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 8.14709044742e-07, Final residual = 9.25531799771e-08, No Iterations 22
+time step continuity errors : sum local = 8.05952204016e-08, global = -7.90862280185e-09, cumulative = -6.05813008613e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.30299584027e-08, Final residual = 9.30299584027e-08, No Iterations 0
+time step continuity errors : sum local = 8.10100690773e-08, global = -7.87702732618e-09, cumulative = -6.05891778887e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.30328138235e-08, Final residual = 9.30328138235e-08, No Iterations 0
+time step continuity errors : sum local = 8.10125555653e-08, global = -7.8768738714e-09, cumulative = -6.05970547625e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.30328251082e-08, Final residual = 9.30328251082e-08, No Iterations 0
+time step continuity errors : sum local = 8.10125653914e-08, global = -7.87687315204e-09, cumulative = -6.06049316357e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 5.73 s ClockTime = 5 s
+
+--------------------------------------------------
+Time Step = 0.0028
+
+Courant Number mean: 2.60582749704e-05 max: 0.00185060269545
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0028
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999137  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0156897500507, Final residual = 2.11840393206e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0161092241147, Final residual = 2.14427049519e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00304452741101, Final residual = 3.42284350299e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.23404653643e-07, Final residual = 8.52469657678e-08, No Iterations 6
+time step continuity errors : sum local = 7.42172265163e-08, global = -5.94532459892e-09, cumulative = -6.06108769603e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.53920160798e-08, Final residual = 8.53920160798e-08, No Iterations 0
+time step continuity errors : sum local = 7.43434820963e-08, global = -5.91099432303e-09, cumulative = -6.06167879546e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.53924104858e-08, Final residual = 8.53924104858e-08, No Iterations 0
+time step continuity errors : sum local = 7.43438254716e-08, global = -5.91085250986e-09, cumulative = -6.06226988071e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.53924120046e-08, Final residual = 8.53924120046e-08, No Iterations 0
+time step continuity errors : sum local = 7.43438267939e-08, global = -5.9108519174e-09, cumulative = -6.0628609659e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 6.07 s ClockTime = 6 s
+
+--------------------------------------------------
+Time Step = 0.003
+
+Courant Number mean: 2.73274263129e-05 max: 0.00192125065968
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.003
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999135  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00508672253116, Final residual = 5.65426708622e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00522330711322, Final residual = 5.73529042792e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00365522774147, Final residual = 9.23628553252e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 6.17296039526e-07, Final residual = 9.49588858133e-08, No Iterations 5
+time step continuity errors : sum local = 8.26715480135e-08, global = -4.49830988437e-09, cumulative = -6.06331079689e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.51791408899e-08, Final residual = 9.51791408899e-08, No Iterations 0
+time step continuity errors : sum local = 8.28632795738e-08, global = -4.50006256525e-09, cumulative = -6.06376080315e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.51802388288e-08, Final residual = 9.51802388288e-08, No Iterations 0
+time step continuity errors : sum local = 8.2864235443e-08, global = -4.50007083982e-09, cumulative = -6.06421081023e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.51802431502e-08, Final residual = 9.51802431502e-08, No Iterations 0
+time step continuity errors : sum local = 8.28642392057e-08, global = -4.50007087657e-09, cumulative = -6.06466081732e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 6.78 s ClockTime = 6 s
+
+--------------------------------------------------
+Time Step = 0.0032
+
+Courant Number mean: 2.84401302931e-05 max: 0.00197829878432
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:15 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+     301        1   2.736128e-06  3.5459066e-25          0.002 
+CFD Coupling established at step 400
+     401        1  4.8552565e-06  1.8272625e-24          0.002 
+Loop time of 8.48802e-05 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:15 2023
+
+
+Pair  time (%) = 1.08978e-05 (12.839)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 1.33282e-05 (15.7024)
+Outpt time (%) = 3.5912e-05 (42.309)
+Other time (%) = 2.47422e-05 (29.1496)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0032
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999133  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00321480022885, Final residual = 2.67873624651e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00329029499736, Final residual = 2.82417191195e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00473981481415, Final residual = 3.99028826234e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 1.39690786333e-06, Final residual = 9.15962558346e-08, No Iterations 14
+time step continuity errors : sum local = 7.97325877707e-08, global = 3.85273255483e-09, cumulative = -6.06427554406e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.18192409766e-08, Final residual = 9.18192409766e-08, No Iterations 0
+time step continuity errors : sum local = 7.9926608884e-08, global = 3.88238224169e-09, cumulative = -6.06388730584e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.18197797825e-08, Final residual = 9.18197797825e-08, No Iterations 0
+time step continuity errors : sum local = 7.99270779022e-08, global = 3.88251214006e-09, cumulative = -6.06349905463e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.18197827171e-08, Final residual = 9.18197827171e-08, No Iterations 0
+time step continuity errors : sum local = 7.99270804569e-08, global = 3.88251270861e-09, cumulative = -6.06311080335e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 7.2 s ClockTime = 7 s
+
+--------------------------------------------------
+Time Step = 0.0034
+
+Courant Number mean: 2.88478688071e-05 max: 0.00202425714379
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0034
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999122  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00578995578075, Final residual = 7.1314149737e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00605709954265, Final residual = 7.23725293484e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00141742954378, Final residual = 2.4884701055e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 8.56860451167e-07, Final residual = 9.24870840554e-08, No Iterations 22
+time step continuity errors : sum local = 8.05073890614e-08, global = 4.69184731584e-09, cumulative = -6.06264161862e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.31436091307e-08, Final residual = 9.31436091307e-08, No Iterations 0
+time step continuity errors : sum local = 8.10789322545e-08, global = 4.66060583247e-09, cumulative = -6.06217555804e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.3147171104e-08, Final residual = 9.3147171104e-08, No Iterations 0
+time step continuity errors : sum local = 8.1082032853e-08, global = 4.6604739371e-09, cumulative = -6.06170951065e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.31471849692e-08, Final residual = 9.31471849692e-08, No Iterations 0
+time step continuity errors : sum local = 8.1082044922e-08, global = 4.66047337336e-09, cumulative = -6.06124346331e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 7.55 s ClockTime = 7 s
+
+--------------------------------------------------
+Time Step = 0.0036
+
+Courant Number mean: 3.35209345271e-05 max: 0.00235150642285
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0036
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999121  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0753199742762, Final residual = 1.52790325938e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0759283650369, Final residual = 1.53957798948e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00303406078744, Final residual = 1.44553976349e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 5.89053861203e-07, Final residual = 9.53543516757e-08, No Iterations 13
+time step continuity errors : sum local = 8.29996255943e-08, global = -1.01337994953e-08, cumulative = -6.06225684326e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.55096559939e-08, Final residual = 9.55096559939e-08, No Iterations 0
+time step continuity errors : sum local = 8.31348215689e-08, global = -1.01891676023e-08, cumulative = -6.06327576002e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.55106744496e-08, Final residual = 9.55106744496e-08, No Iterations 0
+time step continuity errors : sum local = 8.31357080675e-08, global = -1.01893772833e-08, cumulative = -6.06429469775e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.55106781288e-08, Final residual = 9.55106781288e-08, No Iterations 0
+time step continuity errors : sum local = 8.31357112699e-08, global = -1.01893780993e-08, cumulative = -6.06531363556e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 7.9 s ClockTime = 7 s
+
+--------------------------------------------------
+Time Step = 0.0038
+
+Courant Number mean: 3.57670797341e-05 max: 0.00249620657822
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0038
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999118  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0108118004673, Final residual = 1.31900436633e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0109323311003, Final residual = 1.33657516165e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00275926059052, Final residual = 2.78747273633e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 5.17549909863e-07, Final residual = 8.95865486341e-08, No Iterations 13
+time step continuity errors : sum local = 7.79621894374e-08, global = -1.12761452218e-08, cumulative = -6.06644125008e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.95135239553e-08, Final residual = 8.95135239553e-08, No Iterations 0
+time step continuity errors : sum local = 7.78987088333e-08, global = -1.12187934084e-08, cumulative = -6.06756312942e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.95132238515e-08, Final residual = 8.95132238515e-08, No Iterations 0
+time step continuity errors : sum local = 7.78984476692e-08, global = -1.12185474344e-08, cumulative = -6.06868498416e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.95132220475e-08, Final residual = 8.95132220475e-08, No Iterations 0
+time step continuity errors : sum local = 7.78984460991e-08, global = -1.12185463725e-08, cumulative = -6.0698068388e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 8.25 s ClockTime = 8 s
+
+--------------------------------------------------
+Time Step = 0.004
+
+Courant Number mean: 3.70725285172e-05 max: 0.002595013769
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.004
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999111  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00674406807813, Final residual = 5.75728931331e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00673699105969, Final residual = 5.73202397457e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.0018767560375, Final residual = 2.95705469445e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.15464577471e-07, Final residual = 8.55990088224e-08, No Iterations 3
+time step continuity errors : sum local = 7.44869463164e-08, global = -1.13855918382e-08, cumulative = -6.07094539798e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.57249264804e-08, Final residual = 8.57249264804e-08, No Iterations 0
+time step continuity errors : sum local = 7.45965169352e-08, global = -1.13824719833e-08, cumulative = -6.07208364518e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.57253272641e-08, Final residual = 8.57253272641e-08, No Iterations 0
+time step continuity errors : sum local = 7.45968656907e-08, global = -1.13824595008e-08, cumulative = -6.07322189113e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.57253276603e-08, Final residual = 8.57253276603e-08, No Iterations 0
+time step continuity errors : sum local = 7.45968660362e-08, global = -1.13824594499e-08, cumulative = -6.07436013708e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 8.95 s ClockTime = 8 s
+
+--------------------------------------------------
+Time Step = 0.0042
+
+Courant Number mean: 3.82631846865e-05 max: 0.0026617554571
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:17 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+     401        1  4.8552565e-06  1.8272625e-24          0.002 
+CFD Coupling established at step 500
+     501        1  7.5778184e-06  4.5412383e-24          0.002 
+Loop time of 7.32105e-05 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:17 2023
+
+
+Pair  time (%) = 1.11833e-05 (15.2755)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 1.46522e-05 (20.0139)
+Outpt time (%) = 2.25428e-05 (30.7917)
+Other time (%) = 2.48322e-05 (33.919)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0042
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999106  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00752859027402, Final residual = 3.85500057239e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00751822324794, Final residual = 3.79895205391e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00209642585801, Final residual = 1.2574503312e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 7.80792985886e-07, Final residual = 8.56348382236e-08, No Iterations 5
+time step continuity errors : sum local = 7.45130161395e-08, global = -8.58578604334e-09, cumulative = -6.07521871568e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.57800054368e-08, Final residual = 8.57800054368e-08, No Iterations 0
+time step continuity errors : sum local = 7.46393325577e-08, global = -8.57323957277e-09, cumulative = -6.07607603964e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.57811708573e-08, Final residual = 8.57811708573e-08, No Iterations 0
+time step continuity errors : sum local = 7.46403466192e-08, global = -8.5731861504e-09, cumulative = -6.07693335825e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.57811737609e-08, Final residual = 8.57811737609e-08, No Iterations 0
+time step continuity errors : sum local = 7.4640349146e-08, global = -8.57318592098e-09, cumulative = -6.07779067685e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 9.36 s ClockTime = 9 s
+
+--------------------------------------------------
+Time Step = 0.0044
+
+Courant Number mean: 3.92837386726e-05 max: 0.00271478897959
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0044
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999097  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00738984327012, Final residual = 4.36278769859e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00740658835445, Final residual = 4.33976301795e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000976782076982, Final residual = 8.53596878305e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 1.10656498764e-06, Final residual = 9.94585025974e-08, No Iterations 15
+time step continuity errors : sum local = 8.65360397425e-08, global = 7.88468543463e-10, cumulative = -6.07771182999e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.97122537608e-08, Final residual = 9.97122537608e-08, No Iterations 0
+time step continuity errors : sum local = 8.67569447242e-08, global = 8.14271377539e-10, cumulative = -6.07763040285e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.97143836141e-08, Final residual = 9.97143836141e-08, No Iterations 0
+time step continuity errors : sum local = 8.67587978515e-08, global = 8.14377514049e-10, cumulative = -6.0775489651e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.97143902665e-08, Final residual = 9.97143902665e-08, No Iterations 0
+time step continuity errors : sum local = 8.67588036393e-08, global = 8.14377957675e-10, cumulative = -6.07746752731e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 9.71 s ClockTime = 9 s
+
+--------------------------------------------------
+Time Step = 0.0046
+
+Courant Number mean: 4.32353417188e-05 max: 0.00301295701026
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0046
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999087  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0307737796154, Final residual = 5.01444642374e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.030834150587, Final residual = 5.07248036498e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00127205582662, Final residual = 1.541632051e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 5.92824776722e-07, Final residual = 9.71610843953e-08, No Iterations 11
+time step continuity errors : sum local = 8.45421053775e-08, global = 1.78730091306e-09, cumulative = -6.07728879722e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.72806115845e-08, Final residual = 9.72806115845e-08, No Iterations 0
+time step continuity errors : sum local = 8.46461561561e-08, global = 1.75448574493e-09, cumulative = -6.07711334864e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.72809895922e-08, Final residual = 9.72809895922e-08, No Iterations 0
+time step continuity errors : sum local = 8.46464850696e-08, global = 1.75435245901e-09, cumulative = -6.0769379134e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.72809914785e-08, Final residual = 9.72809914785e-08, No Iterations 0
+time step continuity errors : sum local = 8.46464867108e-08, global = 1.75435190639e-09, cumulative = -6.0767624782e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 10.05 s ClockTime = 10 s
+
+--------------------------------------------------
+Time Step = 0.0048
+
+Courant Number mean: 4.57175436591e-05 max: 0.00317118319928
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0048
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999999075  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0315590431651, Final residual = 6.41683928218e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0316624482797, Final residual = 6.44509879766e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000954124911939, Final residual = 1.77577982698e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 3.91766757801e-07, Final residual = 8.01557719418e-08, No Iterations 8
+time step continuity errors : sum local = 6.97434960387e-08, global = -6.37381207567e-09, cumulative = -6.07739985941e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.02729946802e-08, Final residual = 8.02729946802e-08, No Iterations 0
+time step continuity errors : sum local = 6.98455268106e-08, global = -6.40769253525e-09, cumulative = -6.07804062867e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.02733248196e-08, Final residual = 8.02733248196e-08, No Iterations 0
+time step continuity errors : sum local = 6.98458140647e-08, global = -6.40782590141e-09, cumulative = -6.07868141126e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.02733263903e-08, Final residual = 8.02733263903e-08, No Iterations 0
+time step continuity errors : sum local = 6.98458154314e-08, global = -6.40782643916e-09, cumulative = -6.0793221939e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 10.39 s ClockTime = 10 s
+
+--------------------------------------------------
+Time Step = 0.005
+
+Courant Number mean: 4.75024354345e-05 max: 0.00327665960039
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.005
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998999  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0149951262551, Final residual = 1.92401682351e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0149178931509, Final residual = 1.94347800451e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000861828317177, Final residual = 2.67531900361e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 3.58128927805e-07, Final residual = 9.40121091067e-08, No Iterations 3
+time step continuity errors : sum local = 8.17911550319e-08, global = -1.41908083235e-08, cumulative = -6.08074127473e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.41866493812e-08, Final residual = 9.41866493812e-08, No Iterations 0
+time step continuity errors : sum local = 8.19430053681e-08, global = -1.41890872234e-08, cumulative = -6.08216018345e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.41871306186e-08, Final residual = 9.41871306186e-08, No Iterations 0
+time step continuity errors : sum local = 8.19434240481e-08, global = -1.41890790897e-08, cumulative = -6.08357909136e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.4187131265e-08, Final residual = 9.4187131265e-08, No Iterations 0
+time step continuity errors : sum local = 8.19434246103e-08, global = -1.41890790523e-08, cumulative = -6.08499799927e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 11.11 s ClockTime = 11 s
+
+--------------------------------------------------
+Time Step = 0.0052
+
+Courant Number mean: 4.91168786652e-05 max: 0.00334947667495
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:20 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+     501        1  7.5778184e-06  4.5412383e-24          0.002 
+CFD Coupling established at step 600
+     601        1  1.0903722e-05  6.3243655e-25          0.002 
+Loop time of 9.66428e-05 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:20 2023
+
+
+Pair  time (%) = 1.06012e-05 (10.9695)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 2.5773e-05 (26.6683)
+Outpt time (%) = 2.43197e-05 (25.1646)
+Other time (%) = 3.59488e-05 (37.1976)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0052
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998843  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0110672280112, Final residual = 2.32774730895e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0109842015583, Final residual = 2.20567122736e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00112054447537, Final residual = 1.42273042341e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 8.90485877202e-07, Final residual = 9.0561749038e-08, No Iterations 14
+time step continuity errors : sum local = 7.87746617086e-08, global = -6.91409161256e-09, cumulative = -6.08568940843e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.07803065581e-08, Final residual = 9.07803065581e-08, No Iterations 0
+time step continuity errors : sum local = 7.89648858131e-08, global = -6.85048376603e-09, cumulative = -6.08637445681e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.07810722548e-08, Final residual = 9.07810722548e-08, No Iterations 0
+time step continuity errors : sum local = 7.89655518512e-08, global = -6.85021003135e-09, cumulative = -6.08705947781e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.07810751968e-08, Final residual = 9.07810751968e-08, No Iterations 0
+time step continuity errors : sum local = 7.896555441e-08, global = -6.8502088457e-09, cumulative = -6.08774449869e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 11.53 s ClockTime = 11 s
+
+--------------------------------------------------
+Time Step = 0.0054
+
+Courant Number mean: 4.97351639936e-05 max: 0.00341463012762
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0054
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998703  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0085526075579, Final residual = 3.20250756163e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0085333400889, Final residual = 2.95102787464e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000861116281704, Final residual = 3.46748249044e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 7.79235293032e-07, Final residual = 9.51150963132e-08, No Iterations 19
+time step continuity errors : sum local = 8.27317849989e-08, global = 4.7573111714e-09, cumulative = -6.08726876758e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.55008947717e-08, Final residual = 9.55008947717e-08, No Iterations 0
+time step continuity errors : sum local = 8.30674747743e-08, global = 4.77361660982e-09, cumulative = -6.08679140592e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.55029792701e-08, Final residual = 9.55029792701e-08, No Iterations 0
+time step continuity errors : sum local = 8.30692878876e-08, global = 4.77368201852e-09, cumulative = -6.08631403771e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.55029863229e-08, Final residual = 9.55029863229e-08, No Iterations 0
+time step continuity errors : sum local = 8.3069294022e-08, global = 4.77368228603e-09, cumulative = -6.08583666949e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 11.87 s ClockTime = 11 s
+
+--------------------------------------------------
+Time Step = 0.0056
+
+Courant Number mean: 5.36471110112e-05 max: 0.00368717002862
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0056
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998562  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0374483732274, Final residual = 7.53883869598e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0374749836831, Final residual = 7.53305767702e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00167633077755, Final residual = 2.28311504556e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 6.84381005996e-07, Final residual = 8.99551597407e-08, No Iterations 11
+time step continuity errors : sum local = 7.82454270328e-08, global = 1.30774511556e-09, cumulative = -6.08570589497e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.99865478755e-08, Final residual = 8.99865478755e-08, No Iterations 0
+time step continuity errors : sum local = 7.82727344288e-08, global = 1.24898779688e-09, cumulative = -6.08558099619e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.9986755883e-08, Final residual = 8.9986755883e-08, No Iterations 0
+time step continuity errors : sum local = 7.8272915359e-08, global = 1.24874959829e-09, cumulative = -6.08545612123e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.99867566588e-08, Final residual = 8.99867566588e-08, No Iterations 0
+time step continuity errors : sum local = 7.8272916034e-08, global = 1.2487486137e-09, cumulative = -6.08533124637e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 12.22 s ClockTime = 12 s
+
+--------------------------------------------------
+Time Step = 0.0058
+
+Courant Number mean: 5.61651987141e-05 max: 0.00385090975112
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0058
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.49999999846  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0225437609994, Final residual = 4.01398354747e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0225733626207, Final residual = 4.07356077811e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00169831108146, Final residual = 1.79453069264e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.05769001008e-07, Final residual = 9.03178124827e-08, No Iterations 4
+time step continuity errors : sum local = 7.85553463403e-08, global = -3.11169258567e-09, cumulative = -6.08564241563e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.03770420339e-08, Final residual = 9.03770420339e-08, No Iterations 0
+time step continuity errors : sum local = 7.86068549337e-08, global = -3.11418059037e-09, cumulative = -6.08595383369e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.03778498346e-08, Final residual = 9.03778498346e-08, No Iterations 0
+time step continuity errors : sum local = 7.86075575307e-08, global = -3.11418842645e-09, cumulative = -6.08626525253e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.03778534431e-08, Final residual = 9.03778534431e-08, No Iterations 0
+time step continuity errors : sum local = 7.86075606692e-08, global = -3.11418845111e-09, cumulative = -6.08657667138e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 12.56 s ClockTime = 12 s
+
+--------------------------------------------------
+Time Step = 0.006
+
+Courant Number mean: 5.83032200612e-05 max: 0.00395895064937
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.006
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998401  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0158623945304, Final residual = 9.66489607155e-10, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0158728517673, Final residual = 9.59664423817e-10, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00198741087448, Final residual = 8.21032458039e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 6.97490873967e-07, Final residual = 9.84522886233e-08, No Iterations 9
+time step continuity errors : sum local = 8.56215722612e-08, global = -8.26554285721e-09, cumulative = -6.08740322566e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.86773491476e-08, Final residual = 9.86773491476e-08, No Iterations 0
+time step continuity errors : sum local = 8.58172799153e-08, global = -8.26754634153e-09, cumulative = -6.0882299803e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.86780530079e-08, Final residual = 9.86780530079e-08, No Iterations 0
+time step continuity errors : sum local = 8.58178920451e-08, global = -8.26755081009e-09, cumulative = -6.08905673538e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.86780557631e-08, Final residual = 9.86780557631e-08, No Iterations 0
+time step continuity errors : sum local = 8.5817894441e-08, global = -8.26755081657e-09, cumulative = -6.08988349046e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 13.26 s ClockTime = 13 s
+
+--------------------------------------------------
+Time Step = 0.0062
+
+Courant Number mean: 5.96017355932e-05 max: 0.00404581925527
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:22 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+     601        1  1.0903722e-05  6.3243655e-25          0.002 
+CFD Coupling established at step 700
+     701        1  1.4832938e-05  7.7537476e-23          0.002 
+Loop time of 0.000102142 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:22 2023
+
+
+Pair  time (%) = 1.08212e-05 (10.5944)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 1.7481e-05 (17.1145)
+Outpt time (%) = 4.1132e-05 (40.2696)
+Other time (%) = 3.27072e-05 (32.0215)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0062
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998385  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00697331254702, Final residual = 7.10968607682e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00695706284332, Final residual = 7.10639867786e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00207357657578, Final residual = 3.70593159859e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 3.52823322078e-07, Final residual = 9.13156987301e-08, No Iterations 4
+time step continuity errors : sum local = 7.9406134667e-08, global = -1.22310421719e-08, cumulative = -6.09110659468e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.14644303346e-08, Final residual = 9.14644303346e-08, No Iterations 0
+time step continuity errors : sum local = 7.95354591169e-08, global = -1.22265770358e-08, cumulative = -6.09232925238e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.14648832226e-08, Final residual = 9.14648832226e-08, No Iterations 0
+time step continuity errors : sum local = 7.95358529384e-08, global = -1.22265590098e-08, cumulative = -6.09355190828e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.1464884981e-08, Final residual = 9.1464884981e-08, No Iterations 0
+time step continuity errors : sum local = 7.95358544672e-08, global = -1.22265589357e-08, cumulative = -6.09477456418e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 13.68 s ClockTime = 13 s
+
+--------------------------------------------------
+Time Step = 0.0064
+
+Courant Number mean: 6.07801330496e-05 max: 0.00410649483175
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0064
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998381  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00617519378058, Final residual = 7.58739899846e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00616497335684, Final residual = 7.60980806374e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00121535070694, Final residual = 2.34756004405e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 6.32691254576e-07, Final residual = 8.53366928841e-08, No Iterations 13
+time step continuity errors : sum local = 7.42005913078e-08, global = -5.51028648942e-09, cumulative = -6.09532559283e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.563138995e-08, Final residual = 8.563138995e-08, No Iterations 0
+time step continuity errors : sum local = 7.44568052589e-08, global = -5.46705959481e-09, cumulative = -6.09587229878e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.56331825792e-08, Final residual = 8.56331825792e-08, No Iterations 0
+time step continuity errors : sum local = 7.44583639557e-08, global = -5.46687954818e-09, cumulative = -6.09641898674e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.56331888423e-08, Final residual = 8.56331888423e-08, No Iterations 0
+time step continuity errors : sum local = 7.44583694017e-08, global = -5.4668787865e-09, cumulative = -6.09696567462e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 14.03 s ClockTime = 14 s
+
+--------------------------------------------------
+Time Step = 0.0066
+
+Courant Number mean: 6.42163637938e-05 max: 0.0043640979211
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0066
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.49999999838  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0196230409249, Final residual = 4.33072920999e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0196147438602, Final residual = 4.32649687816e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00147177990067, Final residual = 1.77109111787e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.95804172246e-07, Final residual = 8.62586544548e-08, No Iterations 8
+time step continuity errors : sum local = 7.50032970187e-08, global = 4.29533192762e-09, cumulative = -6.09653614143e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.62774056556e-08, Final residual = 8.62774056556e-08, No Iterations 0
+time step continuity errors : sum local = 7.50195679552e-08, global = 4.30697757348e-09, cumulative = -6.09610544367e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.62771273463e-08, Final residual = 8.62771273463e-08, No Iterations 0
+time step continuity errors : sum local = 7.50193259609e-08, global = 4.30702496573e-09, cumulative = -6.09567474117e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.6277126545e-08, Final residual = 8.6277126545e-08, No Iterations 0
+time step continuity errors : sum local = 7.50193252641e-08, global = 4.30702516171e-09, cumulative = -6.09524403866e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 14.37 s ClockTime = 14 s
+
+--------------------------------------------------
+Time Step = 0.0068
+
+Courant Number mean: 6.68733115408e-05 max: 0.00452700398812
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0068
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998378  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0188199999937, Final residual = 4.49453643581e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0188296217267, Final residual = 4.49363113571e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00132575729056, Final residual = 2.05924334977e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 3.9296835493e-07, Final residual = 7.92358470811e-08, No Iterations 8
+time step continuity errors : sum local = 6.88981317845e-08, global = 6.53918903308e-09, cumulative = -6.09459011975e-05
+DICPCG:  Solving for p_rgh, Initial residual = 7.91973878833e-08, Final residual = 7.91973878833e-08, No Iterations 0
+time step continuity errors : sum local = 6.8864643778e-08, global = 6.50842618707e-09, cumulative = -6.09393927713e-05
+DICPCG:  Solving for p_rgh, Initial residual = 7.91970531087e-08, Final residual = 7.91970531087e-08, No Iterations 0
+time step continuity errors : sum local = 6.88643526808e-08, global = 6.50829722443e-09, cumulative = -6.09328844741e-05
+DICPCG:  Solving for p_rgh, Initial residual = 7.91970515208e-08, Final residual = 7.91970515208e-08, No Iterations 0
+time step continuity errors : sum local = 6.88643513002e-08, global = 6.50829667688e-09, cumulative = -6.09263761774e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 14.72 s ClockTime = 14 s
+
+--------------------------------------------------
+Time Step = 0.007
+
+Courant Number mean: 6.88179821224e-05 max: 0.00464216272902
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.007
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998375  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0161188919956, Final residual = 2.39622656733e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0161312079294, Final residual = 2.40382291746e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00119451574802, Final residual = 2.44621869647e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.51737611295e-07, Final residual = 9.18761517092e-08, No Iterations 3
+time step continuity errors : sum local = 7.98847420044e-08, global = 7.20740816303e-09, cumulative = -6.09191687693e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.21454109618e-08, Final residual = 9.21454109618e-08, No Iterations 0
+time step continuity errors : sum local = 8.01188416594e-08, global = 7.20255065803e-09, cumulative = -6.09119662186e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.21459306824e-08, Final residual = 9.21459306824e-08, No Iterations 0
+time step continuity errors : sum local = 8.01192935472e-08, global = 7.2025336627e-09, cumulative = -6.0904763685e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.21459313928e-08, Final residual = 9.21459313928e-08, No Iterations 0
+time step continuity errors : sum local = 8.01192941652e-08, global = 7.20253360158e-09, cumulative = -6.08975611513e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 15.42 s ClockTime = 15 s
+
+--------------------------------------------------
+Time Step = 0.0072
+
+Courant Number mean: 7.05697272214e-05 max: 0.00472294152777
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:24 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+     701        1  1.4832938e-05  7.7537476e-23          0.002 
+CFD Coupling established at step 800
+     801        1  1.9365579e-05  1.6580359e-23          0.002 
+Loop time of 6.68255e-05 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:24 2023
+
+
+Pair  time (%) = 1.07332e-05 (16.0616)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 1.35973e-05 (20.3474)
+Outpt time (%) = 1.80968e-05 (27.0806)
+Other time (%) = 2.43982e-05 (36.5104)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0072
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998371  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0161594637734, Final residual = 5.66342359513e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0162179012777, Final residual = 5.96601524573e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00135268017082, Final residual = 8.09256065358e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 9.12772909003e-07, Final residual = 9.56024895368e-08, No Iterations 5
+time step continuity errors : sum local = 8.31167321111e-08, global = 4.74621358557e-09, cumulative = -6.08928149378e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.57711787104e-08, Final residual = 9.57711787104e-08, No Iterations 0
+time step continuity errors : sum local = 8.32633554523e-08, global = 4.7358955623e-09, cumulative = -6.08880790422e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.57721804019e-08, Final residual = 9.57721804019e-08, No Iterations 0
+time step continuity errors : sum local = 8.32642263209e-08, global = 4.73585990774e-09, cumulative = -6.08833431823e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.57721828879e-08, Final residual = 9.57721828879e-08, No Iterations 0
+time step continuity errors : sum local = 8.32642284826e-08, global = 4.73585978099e-09, cumulative = -6.08786073225e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 15.84 s ClockTime = 15 s
+
+--------------------------------------------------
+Time Step = 0.0074
+
+Courant Number mean: 7.19584741626e-05 max: 0.00478632452369
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0074
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998369  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0115067015642, Final residual = 3.0633765559e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0115550347167, Final residual = 3.30911992187e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00079305178165, Final residual = 1.34760659421e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 1.77205273657e-06, Final residual = 8.67892106584e-08, No Iterations 11
+time step continuity errors : sum local = 7.54391071541e-08, global = 2.32416283996e-09, cumulative = -6.08762831597e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.69753476501e-08, Final residual = 8.69753476501e-08, No Iterations 0
+time step continuity errors : sum local = 7.56008323472e-08, global = 2.32515121451e-09, cumulative = -6.08739580085e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.69777462449e-08, Final residual = 8.69777462449e-08, No Iterations 0
+time step continuity errors : sum local = 7.56029172568e-08, global = 2.32515769602e-09, cumulative = -6.08716328508e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.69777551071e-08, Final residual = 8.69777551071e-08, No Iterations 0
+time step continuity errors : sum local = 7.56029249603e-08, global = 2.32515773093e-09, cumulative = -6.0869307693e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 16.18 s ClockTime = 16 s
+
+--------------------------------------------------
+Time Step = 0.0076
+
+Courant Number mean: 7.49668408878e-05 max: 0.00503997215895
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0076
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998366  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0164588096294, Final residual = 2.62641409645e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0164614645257, Final residual = 2.61151605199e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000834017808303, Final residual = 1.96432525798e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 6.15794001294e-07, Final residual = 7.83016669102e-08, No Iterations 8
+time step continuity errors : sum local = 6.80498178771e-08, global = 3.01712830041e-09, cumulative = -6.08662905647e-05
+DICPCG:  Solving for p_rgh, Initial residual = 7.83558044255e-08, Final residual = 7.83558044255e-08, No Iterations 0
+time step continuity errors : sum local = 6.80968267641e-08, global = 3.02824358847e-09, cumulative = -6.08632623211e-05
+DICPCG:  Solving for p_rgh, Initial residual = 7.83559165761e-08, Final residual = 7.83559165761e-08, No Iterations 0
+time step continuity errors : sum local = 6.80969242311e-08, global = 3.0282859042e-09, cumulative = -6.08602340352e-05
+DICPCG:  Solving for p_rgh, Initial residual = 7.83559162307e-08, Final residual = 7.83559162307e-08, No Iterations 0
+time step continuity errors : sum local = 6.8096923931e-08, global = 3.02828607024e-09, cumulative = -6.08572057492e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 16.55 s ClockTime = 16 s
+
+--------------------------------------------------
+Time Step = 0.0078
+
+Courant Number mean: 7.75548250554e-05 max: 0.00520526017773
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0078
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998363  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0149141961585, Final residual = 2.27701499658e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0148872580954, Final residual = 2.25765090213e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000716374663488, Final residual = 2.4984236534e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 6.05059516867e-07, Final residual = 8.46690608222e-08, No Iterations 7
+time step continuity errors : sum local = 7.35780019822e-08, global = 5.78311359513e-09, cumulative = -6.08514226356e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.46762814319e-08, Final residual = 8.46762814319e-08, No Iterations 0
+time step continuity errors : sum local = 7.35842309104e-08, global = 5.78953670359e-09, cumulative = -6.08456330989e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.46765664856e-08, Final residual = 8.46765664856e-08, No Iterations 0
+time step continuity errors : sum local = 7.3584478624e-08, global = 5.78955832401e-09, cumulative = -6.08398435405e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.46765675945e-08, Final residual = 8.46765675945e-08, No Iterations 0
+time step continuity errors : sum local = 7.35844795873e-08, global = 5.78955839795e-09, cumulative = -6.08340539821e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 16.91 s ClockTime = 16 s
+
+--------------------------------------------------
+Time Step = 0.008
+
+Courant Number mean: 7.9724889013e-05 max: 0.00532427301568
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.008
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998354  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0134317655783, Final residual = 1.63003786129e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0134342829961, Final residual = 1.61142291672e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000700482732516, Final residual = 4.01990069579e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 7.10652892325e-07, Final residual = 8.68291175789e-08, No Iterations 6
+time step continuity errors : sum local = 7.54474831752e-08, global = 4.45849982863e-09, cumulative = -6.08295954823e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.68710432057e-08, Final residual = 8.68710432057e-08, No Iterations 0
+time step continuity errors : sum local = 7.54838666972e-08, global = 4.44240166536e-09, cumulative = -6.08251530807e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.68708100497e-08, Final residual = 8.68708100497e-08, No Iterations 0
+time step continuity errors : sum local = 7.54836641038e-08, global = 4.44233535065e-09, cumulative = -6.08207107453e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.68708097355e-08, Final residual = 8.68708097355e-08, No Iterations 0
+time step continuity errors : sum local = 7.54836638304e-08, global = 4.4423350735e-09, cumulative = -6.08162684102e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 17.62 s ClockTime = 17 s
+
+--------------------------------------------------
+Time Step = 0.0082
+
+Courant Number mean: 8.14861626411e-05 max: 0.0054091707585
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:26 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+     801        1  1.9365579e-05  1.6580359e-23          0.002 
+CFD Coupling established at step 900
+     901        1  2.4501425e-05   7.701945e-23          0.002 
+Loop time of 9.69493e-05 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:26 2023
+
+
+Pair  time (%) = 1.5113e-05 (15.5886)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 2.08315e-05 (21.487)
+Outpt time (%) = 2.0001e-05 (20.6304)
+Other time (%) = 4.10038e-05 (42.294)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0082
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998352  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0114420113403, Final residual = 9.6175189312e-10, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0115004132473, Final residual = 8.59486310435e-10, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000793257679193, Final residual = 3.90291460165e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 7.14844415056e-07, Final residual = 9.12000191059e-08, No Iterations 3
+time step continuity errors : sum local = 7.92352000015e-08, global = 2.74123514662e-09, cumulative = -6.08135271751e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.134874063e-08, Final residual = 9.134874063e-08, No Iterations 0
+time step continuity errors : sum local = 7.93643934241e-08, global = 2.74038184883e-09, cumulative = -6.08107867932e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.13489495189e-08, Final residual = 9.13489495189e-08, No Iterations 0
+time step continuity errors : sum local = 7.93645749079e-08, global = 2.74037995765e-09, cumulative = -6.08080464133e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.1348949601e-08, Final residual = 9.1348949601e-08, No Iterations 0
+time step continuity errors : sum local = 7.93645749794e-08, global = 2.74037995497e-09, cumulative = -6.08053060333e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 18.04 s ClockTime = 18 s
+
+--------------------------------------------------
+Time Step = 0.0084
+
+Courant Number mean: 8.31126464211e-05 max: 0.00547342107111
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0084
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.49999999835  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0118605533947, Final residual = 8.73438425554e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0120276311782, Final residual = 1.11114379418e-08, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000543841325914, Final residual = 5.5902304321e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 1.45606770316e-06, Final residual = 9.96152536017e-08, No Iterations 9
+time step continuity errors : sum local = 8.65346287065e-08, global = -2.4345032375e-10, cumulative = -6.08055494836e-05
+DICPCG:  Solving for p_rgh, Initial residual = 1.00087958217e-07, Final residual = 6.47995448645e-08, No Iterations 1
+time step continuity errors : sum local = 5.62905945445e-08, global = -2.4252976299e-10, cumulative = -6.08057920134e-05
+DICPCG:  Solving for p_rgh, Initial residual = 6.47768170582e-08, Final residual = 6.47768170582e-08, No Iterations 0
+time step continuity errors : sum local = 5.62708492826e-08, global = -2.42492075383e-10, cumulative = -6.08060345055e-05
+DICPCG:  Solving for p_rgh, Initial residual = 6.47767293417e-08, Final residual = 6.47767293417e-08, No Iterations 0
+time step continuity errors : sum local = 5.62707730843e-08, global = -2.42491826517e-10, cumulative = -6.08062769973e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 18.38 s ClockTime = 18 s
+
+--------------------------------------------------
+Time Step = 0.0086
+
+Courant Number mean: 8.59781516257e-05 max: 0.00572758844492
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0086
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998347  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0158878515845, Final residual = 3.00286002754e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0160325090362, Final residual = 3.00459723402e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000782509818093, Final residual = 2.35021590512e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.9358306635e-07, Final residual = 9.1375376695e-08, No Iterations 6
+time step continuity errors : sum local = 7.9367333092e-08, global = -1.77738238332e-09, cumulative = -6.08080543797e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.15177831341e-08, Final residual = 9.15177831341e-08, No Iterations 0
+time step continuity errors : sum local = 7.94909979501e-08, global = -1.77199718982e-09, cumulative = -6.08098263769e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.1518090022e-08, Final residual = 9.1518090022e-08, No Iterations 0
+time step continuity errors : sum local = 7.94912645083e-08, global = -1.77197616706e-09, cumulative = -6.0811598353e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.15180902321e-08, Final residual = 9.15180902321e-08, No Iterations 0
+time step continuity errors : sum local = 7.94912646905e-08, global = -1.77197608255e-09, cumulative = -6.08133703291e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 18.73 s ClockTime = 18 s
+
+--------------------------------------------------
+Time Step = 0.0088
+
+Courant Number mean: 8.85030718953e-05 max: 0.00589277005503
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0088
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998346  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0159304652919, Final residual = 3.0228022023e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0160300356406, Final residual = 2.92579049868e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000867789026813, Final residual = 2.78966444452e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 6.36722069522e-07, Final residual = 8.61107422557e-08, No Iterations 6
+time step continuity errors : sum local = 7.47891883719e-08, global = 3.42659772139e-11, cumulative = -6.08133360632e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.60988102589e-08, Final residual = 8.60988102589e-08, No Iterations 0
+time step continuity errors : sum local = 7.47787985489e-08, global = 4.68534739545e-11, cumulative = -6.08132892097e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.60981113248e-08, Final residual = 8.60981113248e-08, No Iterations 0
+time step continuity errors : sum local = 7.47781915085e-08, global = 4.69034906946e-11, cumulative = -6.08132423062e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.60981091107e-08, Final residual = 8.60981091107e-08, No Iterations 0
+time step continuity errors : sum local = 7.47781895849e-08, global = 4.69036939499e-11, cumulative = -6.08131954025e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 19.06 s ClockTime = 19 s
+
+--------------------------------------------------
+Time Step = 0.009
+
+Courant Number mean: 9.070078328e-05 max: 0.00600932372492
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.009
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998339  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0142933055742, Final residual = 2.85564408304e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0140972277575, Final residual = 2.77964252186e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00095604364336, Final residual = 3.18197807488e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 6.04924546272e-07, Final residual = 8.73373153199e-08, No Iterations 5
+time step continuity errors : sum local = 7.58492550524e-08, global = 2.38780669765e-09, cumulative = -6.08108075958e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.72750626506e-08, Final residual = 8.72750626506e-08, No Iterations 0
+time step continuity errors : sum local = 7.5795169675e-08, global = 2.38844952054e-09, cumulative = -6.08084191463e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.72751803867e-08, Final residual = 8.72751803867e-08, No Iterations 0
+time step continuity errors : sum local = 7.57952719242e-08, global = 2.38844804971e-09, cumulative = -6.08060306982e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.72751793334e-08, Final residual = 8.72751793334e-08, No Iterations 0
+time step continuity errors : sum local = 7.57952710095e-08, global = 2.38844802953e-09, cumulative = -6.08036422502e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 19.78 s ClockTime = 19 s
+
+--------------------------------------------------
+Time Step = 0.0092
+
+Courant Number mean: 9.2562878536e-05 max: 0.00609436322091
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Starting up LIGGGHTS
+Executing command: 'run 100    '
+run 100    
+WARNING: It is heavily recommended to use 'neigh_modify delay 0' with granular pair styles (../pair_gran.cpp:237)
+Setting up run at Fri Mar 17 03:39:28 2023
+
+Memory usage per processor = 4.24112 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+     901        1  2.4501425e-05   7.701945e-23          0.002 
+CFD Coupling established at step 1000
+    1000        1  3.0180243e-05  8.9444048e-23          0.002 
+    1001        1  3.0240622e-05   8.957435e-23          0.002 
+Loop time of 0.0001349 on 4 procs for 100 steps with 1 atoms, finish time Fri Mar 17 03:39:28 2023
+
+
+Pair  time (%) = 1.1222e-05 (8.31872)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 2.58053e-05 (19.1291)
+Outpt time (%) = 6.66648e-05 (49.4177)
+Other time (%) = 3.12085e-05 (23.1345)
+
+Nlocal:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 1 max 0 min
+Histogram: 3 0 0 0 0 0 0 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Ave neighs/atom = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+LIGGGHTS finished
+Foam::cfdemCloud::getDEMdata()
+Foam::cfdemCloud::getDEMdata() - done.
+locate model done
+__________________________________________________
+setforce version: forceInterIB 2.0
+In revised interIBdragPerV
+Out revised interIBdragPerV
+__________________________________________________
+Get ibdragperv
+In revised interIBdragPerV
+Out revised interIBdragPerV
+IBDragPressPerV = grad(p)
+IBDragViscoPerV = laplacian(mu(),U)
+giveDEMdata done.
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0092
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998329  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0124899240264, Final residual = 5.1737269192e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0122892121717, Final residual = 6.02561478271e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00112667619475, Final residual = 1.052643686e-06, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 1.46378638878e-06, Final residual = 8.88308203997e-08, No Iterations 7
+time step continuity errors : sum local = 7.713591092e-08, global = -4.09851469122e-10, cumulative = -6.08040521017e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.88459028155e-08, Final residual = 8.88459028155e-08, No Iterations 0
+time step continuity errors : sum local = 7.71489650123e-08, global = -4.29334233284e-10, cumulative = -6.08044814359e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.88465863629e-08, Final residual = 8.88465863629e-08, No Iterations 0
+time step continuity errors : sum local = 7.71495585682e-08, global = -4.29412493823e-10, cumulative = -6.08049108484e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.88465879542e-08, Final residual = 8.88465879542e-08, No Iterations 0
+time step continuity errors : sum local = 7.71495599495e-08, global = -4.29412814422e-10, cumulative = -6.08053402612e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 20.19 s ClockTime = 20 s
+
+--------------------------------------------------
+Time Step = 0.0094
+
+Courant Number mean: 9.39289984022e-05 max: 0.00616847704306
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0094
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998293  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00877597920604, Final residual = 2.64969708077e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.00869435803757, Final residual = 3.47620183965e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000689980062647, Final residual = 3.38710921472e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 9.46453619128e-07, Final residual = 9.01787213563e-08, No Iterations 11
+time step continuity errors : sum local = 7.82908457696e-08, global = -1.2348811049e-09, cumulative = -6.08065751423e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.06084533308e-08, Final residual = 9.06084533308e-08, No Iterations 0
+time step continuity errors : sum local = 7.86639103267e-08, global = -1.22567558675e-09, cumulative = -6.08078008179e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.06105281564e-08, Final residual = 9.06105281564e-08, No Iterations 0
+time step continuity errors : sum local = 7.86657116362e-08, global = -1.22563334877e-09, cumulative = -6.08090264513e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.06105355573e-08, Final residual = 9.06105355573e-08, No Iterations 0
+time step continuity errors : sum local = 7.86657180611e-08, global = -1.2256331579e-09, cumulative = -6.08102520844e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 20.53 s ClockTime = 20 s
+
+--------------------------------------------------
+Time Step = 0.0096
+
+Courant Number mean: 9.69185339258e-05 max: 0.00640160209895
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0096
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998287  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0151370886567, Final residual = 3.66148249737e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0149533520285, Final residual = 3.51414602748e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000943014933924, Final residual = 2.21842177217e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 5.12921538305e-07, Final residual = 9.00476920833e-08, No Iterations 7
+time step continuity errors : sum local = 7.81691827998e-08, global = 2.92815201241e-10, cumulative = -6.08099592692e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.00452605218e-08, Final residual = 9.00452605218e-08, No Iterations 0
+time step continuity errors : sum local = 7.81670606774e-08, global = 3.01715219571e-10, cumulative = -6.0809657554e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.00458376065e-08, Final residual = 9.00458376065e-08, No Iterations 0
+time step continuity errors : sum local = 7.81675616365e-08, global = 3.01750774514e-10, cumulative = -6.08093558032e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.0045839104e-08, Final residual = 9.0045839104e-08, No Iterations 0
+time step continuity errors : sum local = 7.81675629363e-08, global = 3.01750919971e-10, cumulative = -6.08090540523e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 20.87 s ClockTime = 20 s
+
+--------------------------------------------------
+Time Step = 0.0098
+
+Courant Number mean: 9.95482023899e-05 max: 0.00656936947789
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.0098
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998283  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0145467630344, Final residual = 2.60714365743e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0144439845068, Final residual = 2.58540615452e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.000979703242492, Final residual = 2.50268308231e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.96343162545e-07, Final residual = 9.46472144424e-08, No Iterations 6
+time step continuity errors : sum local = 8.2157472022e-08, global = 3.03190582716e-09, cumulative = -6.08060221465e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.47046241478e-08, Final residual = 9.47046241478e-08, No Iterations 0
+time step continuity errors : sum local = 8.22072977943e-08, global = 3.03537342441e-09, cumulative = -6.0802986773e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.47039138403e-08, Final residual = 9.47039138403e-08, No Iterations 0
+time step continuity errors : sum local = 8.22066812199e-08, global = 3.03538417539e-09, cumulative = -6.07999513889e-05
+DICPCG:  Solving for p_rgh, Initial residual = 9.4703909763e-08, Final residual = 9.4703909763e-08, No Iterations 0
+time step continuity errors : sum local = 8.22066776804e-08, global = 3.03538420826e-09, cumulative = -6.07969160047e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 21.21 s ClockTime = 21 s
+
+--------------------------------------------------
+Time Step = 0.01
+
+Courant Number mean: 0.000101802482593 max: 0.00669649252212
+Interface Courant Number mean: 0 max: 0
+Update particle motion
+
+===============================================
+Start myCloudinterib2.0 evolve
+Dump DEM data
+Finish myCloudinterib2.0 evolve
+__________________________________________________
+Finish update particle motion
+
+Solve flow at time: 0.01
+
+alphaEqu version 2.0
+use voidfraction
+MULES: Solving for alpha.water
+MULES: Solving for alpha.water
+Phase-1 volume fraction = 0.499999998275  Min(alpha.water) = 0  Max(alpha.water) = 1
+Construct UEqn
+
+Solve UEqn == Source
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0132722635482, Final residual = 2.15505926859e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0132392262081, Final residual = 2.13718772054e-09, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00101724592677, Final residual = 3.07316176186e-07, No Iterations 1
+PIMPLE loop
+
+DICPCG:  Solving for p_rgh, Initial residual = 4.82551779904e-07, Final residual = 8.58296024396e-08, No Iterations 6
+time step continuity errors : sum local = 7.44995175157e-08, global = 8.71777903887e-10, cumulative = -6.07960442268e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.58351303777e-08, Final residual = 8.58351303777e-08, No Iterations 0
+time step continuity errors : sum local = 7.4504313806e-08, global = 8.52017889595e-10, cumulative = -6.07951922089e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.58352361572e-08, Final residual = 8.58352361572e-08, No Iterations 0
+time step continuity errors : sum local = 7.45044056218e-08, global = 8.51935072819e-10, cumulative = -6.07943402738e-05
+DICPCG:  Solving for p_rgh, Initial residual = 8.58352365745e-08, Final residual = 8.58352365745e-08, No Iterations 0
+time step continuity errors : sum local = 7.45044059837e-08, global = 8.51934722018e-10, cumulative = -6.07934883391e-05
+
+mixture.correct
+CalcVelocityCorrection
+__________________________________________________
+start velocity correction
+__________________________________________________
+setParticleVelocity
+Total number of particles = 1
+End of setParticleVelocity
+__________________________________________________
+End velocity correction
+__________________________________________________
+ExecutionTime = 21.92 s ClockTime = 21 s
+
+--------------------------------------------------
+Finalising parallel run

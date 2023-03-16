@@ -1,0 +1,13 @@
+#!/bin/bash
+rm ./log_CFDEM_IB
+
+cd ./CFD
+rm ani.*
+rm -r processor*
+
+cd ./constant
+rm -r polyMesh
+
+cd ../../DEM
+rm -r ./post
+mkdir post
