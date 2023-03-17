@@ -1,2 +1,0 @@
-path = ../subModels
-LIB = $(CFDEM_USER_LIB_DIR)/libinterIB20
