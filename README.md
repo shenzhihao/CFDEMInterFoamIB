@@ -6,7 +6,7 @@ A CFDEM solver to simulate the interaction between two-phase fluid and granualr 
 
 ## Some cases:  
 ### Sphere settling:  
-<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/ani1.gif" width=80% height=80%>  
+<img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/settling.gif" width=80% height=80%>  
 
 ### Seepage:  
 <img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/seepage10mb.gif" width=80% height=80%>  
