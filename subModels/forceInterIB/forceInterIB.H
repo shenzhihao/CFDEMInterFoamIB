@@ -81,6 +81,7 @@ private:
     // word phaseName_;
     
     // const volScalarField& phase_;
+    mutable volVectorField interIBDragPerV_;
 
     bool useTorque_;
 
@@ -106,6 +107,12 @@ public:
 
     // Member Functions
         void setForce() const;
+
+        const volVectorField& interIBDragPerV() const;
+
+        // const volVectorField& calcInterIBDragPerV(const volVectorField&,const volScalarField&);
+        const volVectorField& calcInterIBDragPerV(const volVectorField&,const volScalarField&) const;
+
 };
 
 

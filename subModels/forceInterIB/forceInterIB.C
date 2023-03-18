@@ -73,6 +73,19 @@ forceInterIB::forceInterIB
     voidfraction_(sm.mesh().lookupObject<volScalarField> (voidFieldName_)),
     // phaseName_(propsDict_.lookup("phaseName")),
     // phase_(sm.mesh().lookupObject<volScalarField> (phaseName_)),
+    interIBDragPerV_
+    (
+        IOobject
+        (
+            "interIBDragPerV_",
+            sm.mesh().time().timeName(),
+            sm.mesh(),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        sm.mesh(),
+        dimensionedVector("interIBDragPerV_", dimensionSet(1, -2, -2, 0, 0), vector::zero)
+    ),
     useTorque_(false)
 {
     //Append the field names to be probed
@@ -125,7 +138,7 @@ void forceInterIB::setForce() const
     scalar Exdrag = readScalar(dict_.lookup("Exdrag"));
     scalar dragcorrcoe = readScalar(dict_.lookup("dragcorrcoe"));
 
-    volVectorField h = forceSubM(0).interIBDragPerV(U_,p_)
+    volVectorField h = calcInterIBDragPerV(U_,p_);
     // *voidfraction_
     ;
 
@@ -208,6 +221,25 @@ void forceInterIB::setForce() const
     Info << "__________________________________________________" << endl;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+const volVectorField& forceInterIB::interIBDragPerV() const
+{
+    return interIBDragPerV_;
+}
+
+
+const volVectorField& forceInterIB::calcInterIBDragPerV(const volVectorField& U,const volScalarField& p) const
+{
+    #ifdef compre
+        interIBDragPerV_ = forceSubM(0).muField()*fvc::laplacian(U)-fvc::grad(p);
+    #else
+        // Info << "laplacian(mu(),U)" << endl;
+        interIBDragPerV_ = fvc::laplacian(forceSubM(0).rhoField()*forceSubM(0).nuField(),U);
+        // Info << "Grad(p)" << endl;
+        interIBDragPerV_ += -fvc::grad(p);
+    #endif
+    return interIBDragPerV_;
+}
 
 } // End namespace Foam
 
