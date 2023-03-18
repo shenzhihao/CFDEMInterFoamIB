@@ -80,6 +80,11 @@ protected:
     // 12.
     bool                frontMeshRefine_;
 
+    mutable volVectorField IBDragPerV_;
+    mutable volVectorField IBDragPresPerV_;
+    mutable volVectorField IBDragViscPerV_;
+
+
 public:
 
     // Constructors
@@ -144,6 +149,20 @@ public:
         double getTortuosity(vector dir);
 
         void setRefinementField(volScalarField* refine_); //this pointer is meant for a field that is used refinement outside of the cloud. can point to the same field as interFace
+
+// Functions to calculate drag force fields
+
+        const volVectorField& IBDragPerV(const volVectorField&,const volScalarField&);
+        // const volVectorField& IBDragPerV(const volVectorField&,const volScalarField&) const;
+
+        const volVectorField& interIBDragPerV(const volVectorField&,const volScalarField&);
+        // const volVectorField& interIBDragPerV(const volVectorField&,const volScalarField&) const;
+
+        const volVectorField& IBDragPressPerV(const volVectorField&,const volScalarField&);
+        // const volVectorField& IBDragPressPerV(const volVectorField&,const volScalarField&) const;
+
+        const volVectorField& IBDragViscoPerV(const volVectorField&,const volScalarField&);
+        // const volVectorField& IBDragViscoPerV(const volVectorField&,const volScalarField&) const;
 
 };
 

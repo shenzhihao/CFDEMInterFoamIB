@@ -65,7 +65,46 @@ cloudInterIB20::cloudInterIB20
     skipAfter_(false),
     timeStepsToSkip_(0),
     calculateTortuosity_(false),
-    frontMeshRefine_(false)
+    frontMeshRefine_(false),
+    IBDragPerV_
+    (
+        IOobject
+        (
+            "IBDragPerV_cloud",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedVector("IBDragPerV_cloud", dimensionSet(1, -2, -2, 0, 0), vector::zero)
+    ),
+    IBDragPresPerV_
+    (
+        IOobject
+        (
+            "IBDragPresPerV",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedVector("IBDragPresPerV", dimensionSet(1, -2, -2, 0, 0), vector::zero)
+    ),
+    IBDragViscPerV_
+    (
+        IOobject
+        (
+            "IBDragViscPerV",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedVector("IBDragViscPerV", dimensionSet(1, -2, -2, 0, 0), vector::zero)
+    )
 {
     Info << "\n==========Start Constructor of myCloudinterIB2.0============\n" << endl;
     if(this->couplingProperties().found("skipLagrangeToEulerMapping"))
@@ -222,9 +261,9 @@ bool Foam::cloudInterIB20::evolve
         // 获得ibdrag信息
         // 此处用于数据输出，可注释掉
         Info << "Get ibdragperv" << endl;
-        ibdragperv = forceM(0).forceSubM(0).interIBDragPerV(U,p);
-        ibdragpressperv = forceM(0).forceSubM(0).IBDragPressPerV(U,p);
-        ibdragviscoperv = forceM(0).forceSubM(0).IBDragViscoPerV(U,p);
+        ibdragperv = interIBDragPerV(U,p);
+        ibdragpressperv = IBDragPressPerV(U,p);
+        ibdragviscoperv = IBDragViscoPerV(U,p);
         // 将计算得到的力传回DEM程序部分
         giveDEMdata();
 
@@ -475,7 +514,7 @@ double Foam::cloudInterIB20::getTortuosity(vector dir)
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-void cloudInterIB20::setRefinementField(volScalarField* refine_)
+void Foam::cloudInterIB20::setRefinementField(volScalarField* refine_)
 {
  //Function to allow for setting and activating special refinement operations
  frontMeshRefineField_ = refine_;
@@ -484,6 +523,46 @@ void cloudInterIB20::setRefinementField(volScalarField* refine_)
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const volVectorField& Foam::cloudInterIB20::interIBDragPerV(const volVectorField& U,const volScalarField& p)
+{
+    Info << "In revised interIBdragPerV" << endl;
+    #ifdef compre
+        IBDragPerV_ = forceM(0).forceSubM(0).muField()*fvc::laplacian(U)-fvc::grad(p);
+    #else
+        // Info << "laplacian(mu(),U)" << endl;
+        IBDragPerV_ = fvc::laplacian(forceM(0).forceSubM(0).rhoField()*forceM(0).forceSubM(0).nuField(),U);
+        // Info << "Grad(p)" << endl;
+        IBDragPerV_ += -fvc::grad(p);
+    #endif
+    Info << "Out revised interIBdragPerV" << endl;
+    return IBDragPerV_;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const volVectorField& Foam::cloudInterIB20::IBDragPressPerV(const volVectorField& U,const volScalarField& p)
+{
+    // Info << "Get ibdrag pressure part" << endl;
+    Info << "IBDragPressPerV = grad(p)" << endl;
+    IBDragPresPerV_ = -fvc::grad(p);
+    // Info << "Out IBDragPressPerV" << endl;
+    return IBDragPresPerV_;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const volVectorField& Foam::cloudInterIB20::IBDragViscoPerV(const volVectorField& U,const volScalarField& p)
+{
+    // Info << "Get ibdrag viscosity part" << endl;
+
+    Info << "IBDragViscoPerV = laplacian(mu(),U)" << endl;
+    IBDragViscPerV_ = fvc::laplacian(forceM(0).forceSubM(0).rhoField()*forceM(0).forceSubM(0).nuField(),U);
+    
+    // Info << "Out IBDragViscoPerV" << endl;
+    return IBDragViscPerV_;
+}
+
 
 } // End namespace Foam
 
