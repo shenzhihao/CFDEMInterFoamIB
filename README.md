@@ -15,6 +15,7 @@ This case is a validation of using the DEM clump. A clump consists of four overl
 ## Animations of some cases:  
 ### Sphere settling (corresponds to the tutorial case "single_phere"):  
 <img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/settling.gif" width=80% height=80%>  
+Notice: this animation has a time period of 0.8 s. In the tutorial case "single_sphere", only 0.01 s is set (tutorial/single_sphere/CFD/system/controlDict line 26: endTime 0.01) just for the validation of successful installation. The user should change the endtime into 0.8 s to get the same result as the above animation.
 
 ### Seepage ( not included in tutorial cases):  
 <img src="https://github.com/shenzhihao/CFDEMInterFoamIB/blob/main/animations/seepage10mb.gif" width=80% height=80%>  
