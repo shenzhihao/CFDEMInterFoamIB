@@ -8,7 +8,7 @@ A CFDEM solver to simulate the interaction between two-phase fluid and granualr 
 
 ## Introduction to tutorial cases
 1. single_sphere  
-This case is used to show the interaction between particle and two-pase phase in the settling process. Phenomena such as the cavity, splashing, and back-jet.  
+This case is used to show the interaction between particle and two-pase phase in the settling process. Phenomena such as the cavity, splashing, and back-jet can be observed.  
 2. Multi-sphere
 This case is a validation of using the DEM clump. A clump consists of four overlapping sub-spheres is constructed (the particle template is in the location tutorial/multi_sphere/DEM/data/test). Users should learn how to do multi-sphere modeling in LIGGGHTS.
 
