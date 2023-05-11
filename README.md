@@ -33,3 +33,7 @@ Notice: this animation has a time period of 0.8 s. In the tutorial case "single_
 
 ## Notice:  
 This solver is still on an early release. Questions about installing, compiling, and tutorials cases will be further replied.
+
+## Update logs
+2023-05-11:
+A case named "multi_sphere_fish" is added in the tutorial. This case can help the users to use the clump DEM model in coupling.
