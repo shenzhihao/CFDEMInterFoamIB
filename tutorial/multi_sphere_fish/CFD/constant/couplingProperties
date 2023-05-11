@@ -1,0 +1,158 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.6                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           dictionary;
+    object          couplingProperties;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+//===========================================================================//
+// sub-models & settings
+verbose on;
+
+modelType none;
+
+useDDTvoidfraction b;
+
+couplingInterval 100;
+
+depth 0;
+
+voidFractionModel IB;//bigParticle;//centre; //
+
+locateModel engineIB;//standard;//
+
+meshMotionModel noMeshMotion;
+
+dataExchangeModel twoWayMPI;//twoWayFiles;
+
+IOModel basicIO;
+
+probeModel off;
+
+averagingModel dilute;
+
+clockModel off;
+
+smoothingModel off;
+
+forceModels
+(
+    forceInterIB
+//    ArhimedesIB
+);
+
+momCoupleModels
+(
+);
+
+//turbulenceModelType RASProperties;//LESProperties; //OFversion24x
+turbulenceModelType turbulenceProperties; //OFversion30x
+
+//===========================================================================//
+// sub-model properties
+
+DiFeliceDragProps
+{
+    velFieldName "U";
+    densityFieldName "rho";
+    voidfractionFieldName "voidfraction";
+    granVelFieldName "Us";
+}
+
+gradPForceProps
+{
+    pFieldName "p";
+    densityFieldName "rho";
+    voidfractionFieldName "voidfraction";
+    velocityFieldName "U";
+    //interpolation;
+}
+
+viscForceProps
+{
+    velocityFieldName "U";
+    densityFieldName "rho";
+    interpolation;
+}
+
+forceInterIBProps
+{
+    velFieldName "U";
+    pressureFieldName "p";
+    voidFieldName "voidfraction";
+}
+
+ArchimedesIBProps
+{
+    gravityFieldName "g";
+    densityFieldName "rho";
+    voidfractionFieldName "voidfraction";
+}
+
+twoWayFilesProps
+{
+    maxNumberOfParticles 10000;
+    DEMts 0.0001;
+}
+
+twoWayMPIProps
+{
+    maxNumberOfParticles 10000;
+    liggghtsPath "../DEM/in.liggghts_run";
+}
+
+IBProps
+{
+    maxCellsPerParticle 10000;
+    alphaMin 0.30;
+    scaleUpVol 1.0;
+}
+
+bigParticleProps
+{
+    maxCellsPerParticle 10000;
+    alphaMin 0.30;
+    scaleUpVol 1.0;
+}
+centreProps
+{
+    alphaMin 0.30;
+}
+
+dividedProps
+{
+    alphaMin 0.05;
+    scaleUpVol 1.2;
+}
+
+engineIBProps
+{
+    treeSearch false;
+    zSplit 8;
+    xySplit 16;
+}
+
+Exdrag 0;
+
+Coe_V_local             0.9;
+Coe_V_global            1.0;
+
+doDivCor                0;
+dragcorrcoe             1.0;
+// ************************************************************************* //
